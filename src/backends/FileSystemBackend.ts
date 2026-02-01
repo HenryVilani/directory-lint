@@ -1,4 +1,5 @@
-import { LintBackend, LintItem } from "../core/backend.js";
+import { LintItem } from "src/core/types/backend.types.js";
+import { LintBackend } from "../core/backend.js";
 import * as fs from "fs";
 
 export const FileSystemBackend: LintBackend = {
@@ -16,8 +17,8 @@ export const FileSystemBackend: LintBackend = {
         fs.writeFileSync(path, content, { encoding: "utf-8"});
     },
 
-    makeDirectory(path: string): void {
-        fs.mkdirSync(path, { recursive: true });
+    makeDirectory(path: string, recursive?: boolean): void {
+        fs.mkdirSync(path, { recursive });
     },
 
     exists(path: string) {

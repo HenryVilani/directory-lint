@@ -1,9 +1,4 @@
-import { LintTypes } from "./types.js";
-
-export type LintItem = {
-    name: string;
-    type: LintTypes;
-}
+import { LintItem } from "./types/backend.types.js";
 
 export interface LintBackend {
 
@@ -11,7 +6,7 @@ export interface LintBackend {
 
     writeFile(path: string, content: string): void;
 
-    makeDirectory(path: string): void;
+    makeDirectory(path: string, recursive?: boolean): void;
 
     exists(path: string): boolean;
 

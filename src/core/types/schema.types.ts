@@ -7,7 +7,11 @@ interface BaseLintNode {
 }
 
 interface FileLintNode extends BaseLintNode {
+    
     type: "file";
+    validate?: (content: string) => boolean | Promise<boolean>;
+    template?: string | (() => string);
+
 }
 
 interface DirectoryLintNode extends BaseLintNode{
@@ -15,11 +19,6 @@ interface DirectoryLintNode extends BaseLintNode{
     children?: LintSchema;
 }
 
-export type LintTypes = "file" | "dir";
-
-export type LintSchema = {
-
-    [K: string]: (DirectoryLintNode | FileLintNode);
-
-}
+export type LintNode = FileLintNode | DirectoryLintNode;
+export type LintSchema = Record<string, LintNode>;
 

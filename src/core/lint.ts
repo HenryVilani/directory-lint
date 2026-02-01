@@ -1,9 +1,9 @@
-import { join } from "path";
-import { LintSchema } from "./types.js";
-import { LintBackend } from "./backend.js";
-import { InvalidItemType, NotFoundRequiredItem } from "../errors.js";
-import { FileSystemBackend } from "../backends/FileSystemBackend.js";
 
+import { join } from "path";
+import { LintBackend } from "./backend.js";
+import { FileSystemBackend } from "../backends/FileSystemBackend.js";
+import { LintSchema } from "./types/schema.types.js";
+import { GenerateOptions, GenerationResult, ValidateOptions, ValidationResult } from "./types/lint.types.js";
 
 export class DirectoryLint {
 
@@ -11,9 +11,15 @@ export class DirectoryLint {
         private readonly backend: LintBackend = FileSystemBackend
     ) {}
 
-    generate(path: string, schema: LintSchema) {
+    async generate(path: string, schema: LintSchema, options?: GenerateOptions): Promise<GenerationResult> {
+
+        const result: GenerationResult = {
+
+            warnings: []
+
+        };
        
-        if (!this.backend.exists(path)) this.backend.makeDirectory(path);
+        if (!this.backend.exists(path)) this.backend.makeDirectory(path, options?.recursive);
 
         for (const [pattern, node] of Object.entries(schema)) {
             
@@ -22,6 +28,11 @@ export class DirectoryLint {
 
             if (!name) {
                 console.warn(`[Warn] No example field setted to: ${pattern}.`);
+                result.warnings.push({
+                    type: "missing",
+                    path: join(path, name ?? pattern),
+                    message: `No example field setted ${pattern}`
+                })
                 continue;
             }
 
@@ -30,7 +41,7 @@ export class DirectoryLint {
             if (node.type === "dir") {
 
                 if (!this.backend.exists(fullPath)) {
-                    this.backend.makeDirectory(fullPath);
+                    this.backend.makeDirectory(fullPath, options?.recursive);
                 }
                 
                 if (node.children) {
@@ -41,57 +52,109 @@ export class DirectoryLint {
                 
                 if (!this.backend.exists(fullPath)) {
                     this.backend.writeFile(fullPath, ""); 
+                }else {
+
+                    if (options?.overwrite) {
+
+                        this.backend.writeFile(
+                            fullPath,
+                            (typeof node.template === "function" ? node.template() : node.template) ?? ""
+                        );
+
+                    }
+
                 }
 
             }
         }
+
+        return result;
     }
 
-    validate(path: string, schema: LintSchema) {
+    async validate(path: string, schema: LintSchema, options?: ValidateOptions): Promise<ValidationResult> {
 
-        this.recursiveValidate(path, schema);
+        const result: ValidationResult = {
+            valid: false,
+            errors: [],
+            warnings: []
+        }
+
+        this.recursiveValidate(path, schema, result, options);
+
+        return result;
 
     }
 
     private patternToRegex(pattern: string): RegExp {
 
         if (pattern.startsWith('/') && pattern.endsWith('/')) {
-            return new RegExp(pattern.slice(1 -1));
+            return new RegExp(pattern.slice(1, -1));
         }
 
         const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
         return new RegExp(`^${escaped}$`);
     }
 
-    private recursiveValidate(path: string, schema: LintSchema) {
+    private recursiveValidate(path: string, schema: LintSchema, result: ValidationResult, options?: ValidateOptions) {
 
         const items = this.backend.getAllItems(path);
 
         for (const [pattern, node] of Object.entries(schema)) {
 
             const regex = this.patternToRegex(pattern);
-
             const matchedItems = items.filter(item => regex.test(item.name));
 
-            if (matchedItems.length === 0 && node.required !== false) throw new NotFoundRequiredItem(pattern);
+            if (matchedItems.length === 0 && node.required !== false) {
+
+                result.errors.push({
+                    type: "missing",
+                    message: `not found item with pattern: ${pattern}`,
+                    path: join(path, pattern)
+                });
+                result.valid = false;
+                continue;
+
+            }
 
             for (const {name, type} of matchedItems) {
+
+                if (options?.ignore.includes(name)) continue;
 
                 const fullPath = join(path, name);
 
                 if (node.type === "dir") {
                     
-                    if (type !== "dir") throw new InvalidItemType(name);
+                    if (type !== "dir") {
+                        result.errors.push({
+                            type: "invalid-type",
+                            message: "Inconsistent types found",
+                            path: fullPath
+                        })
+                        result.valid = false;
+                        continue;
+
+                    }
                     else if (node.children) {
-                        this.recursiveValidate(fullPath, node.children);
+
+                        this.recursiveValidate(fullPath, node.children, result, options);
+
                     }
 
-                }else if (node.type === "file" && type !== "file") throw new InvalidItemType(name);
+                }else if (node.type === "file" && type !== "file") {
+
+                    result.errors.push({
+                        type: "invalid-type",
+                        message: "Inconsistent types found",
+                        path: fullPath
+                    })
+                    result.valid = false;
+                    continue;
+
+                }
 
             }
 
         }
-
 
     }
 
