@@ -1,0 +1,40 @@
+{
+  "name": "directory-lint",
+  "version": "1.0.0",
+  "description": "Directory Lint",
+  "license": "MIT",
+  "author": "Henry Vilani",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "example:basic": "ts-node examples/basic-generation.ts"
+  },
+  "keywords": [
+    "linter",
+    "validation",
+    "filesystem",
+    "directory-structure",
+    "architecture",
+    "lint"
+  ],
+  "devDependencies": {
+    "@types/node": "^25.2.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "ts-node": "^10.9.2"
+  }
+}
