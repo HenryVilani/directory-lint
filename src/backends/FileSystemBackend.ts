@@ -17,6 +17,10 @@ export const FileSystemBackend: LintBackend = {
         fs.writeFileSync(path, content, { encoding: "utf-8"});
     },
 
+    readFile(path: string): string {
+        return fs.readFileSync(path, { encoding: "utf-8"});
+    },
+
     makeDirectory(path: string, recursive?: boolean): void {
         fs.mkdirSync(path, { recursive });
     },

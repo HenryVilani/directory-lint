@@ -95,7 +95,7 @@ export class DirectoryLint {
         return new RegExp(`^${escaped}$`);
     }
 
-    private recursiveValidate(path: string, schema: LintSchema, result: ValidationResult, options?: ValidateOptions) {
+    private async recursiveValidate(path: string, schema: LintSchema, result: ValidationResult, options?: ValidateOptions) {
 
         const items = this.backend.getAllItems(path);
 
@@ -140,15 +140,30 @@ export class DirectoryLint {
 
                     }
 
-                }else if (node.type === "file" && type !== "file") {
+                }else if (node.type === "file") {
 
-                    result.errors.push({
-                        type: "invalid-type",
-                        message: "Inconsistent types found",
-                        path: fullPath
-                    })
-                    result.valid = false;
-                    continue;
+                    if (type !== "file") {
+
+                        result.errors.push({
+                            type: "invalid-type",
+                            message: "Inconsistent types found",
+                            path: fullPath
+                        })
+                        result.valid = false;
+                        continue;
+
+                    }
+
+                    const content = this.backend.readFile(fullPath);
+                    if (!(await node.validate?(content) : true)) {
+
+                        result.errors.push({
+                            type: "custom",
+                            message: `custom validation error in ${name}`,
+                            path: fullPath
+                        })
+
+                    }
 
                 }
 
