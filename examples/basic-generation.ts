@@ -1,26 +1,24 @@
-import { DirectoryLint, type LintSchema } from "directory-lint";
+import { DirectoryLint, type GenerateSchema } from "directory-lint";
 
-const schema: LintSchema = {
+const schema: GenerateSchema = {
 
     "basic_file": {
         type: "file",
-        required: true
     },
 
     "basic_folder": {
-        type: "dir",
-        required: true,
+        type: "directory",
         children: {
             "sub_dir_file": {
                 type: "file",
-                required: true
+                content: "sdfsdfsdf"
+                
             }
         }
     }
 
 }
 
-
 const linter = new DirectoryLint();
-linter.generate("./generated", schema);
+linter.generate("./generated", schema, {overwrite: true});
 
