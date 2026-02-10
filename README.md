@@ -8,12 +8,12 @@ A powerful TypeScript library for validating and generating directory structures
 ## ✨ Features
 
 - 🔍 **Schema-based Validation** - Define your directory structure using intuitive schemas
-- 🏗️ **Automatic Generation** - Create directory structures from schemas with templates
+- 🏗️ **Automatic Generation** - Create directory structures from schemas with content templates
 - 📝 **Pattern Matching** - Support for wildcards and regex patterns
-- 🎯 **15+ Framework Presets** - Built-in schemas for popular frameworks (Next.js, NestJS, Vite, etc.)
 - 🔧 **Flexible Backend** - Pluggable backend system (File System or custom)
 - 📦 **Zero Dependencies** - Lightweight with minimal footprint
 - 🎯 **TypeScript First** - Full TypeScript support with comprehensive types
+- ✅ **Custom Validation** - Validate file content with custom functions
 
 ## 📦 Installation
 
@@ -26,11 +26,11 @@ npm install directory-lint
 ### Validating a Directory Structure
 
 ```typescript
-import { DirectoryLint, type LintSchema } from "directory-lint";
+import { DirectoryLint, type ValidateSchema } from "directory-lint";
 
-const schema: LintSchema = {
+const schema: ValidateSchema = {
   "src": {
-    type: "dir",
+    type: "directory",
     required: true,
     children: {
       "index.ts": {
@@ -38,7 +38,7 @@ const schema: LintSchema = {
         required: true
       },
       "components": {
-        type: "dir",
+        type: "directory",
         required: true
       }
     }
@@ -55,35 +55,28 @@ const result = await linter.validate("./my-project", schema, {
   ignore: ["node_modules", "dist", ".git"]
 });
 
-if (result.valid) {
-  console.log("✅ Directory structure is valid!");
-} else {
-  console.error("❌ Validation errors:", result.errors);
-  console.warn("⚠️ Warnings:", result.warnings);
-}
+console.log("Validation result:", result);
 ```
 
 ### Generating a Directory Structure
 
 ```typescript
-import { DirectoryLint, type LintSchema } from "directory-lint";
+import { DirectoryLint, type GenerateSchema } from "directory-lint";
 
-const schema: LintSchema = {
+const schema: GenerateSchema = {
   "src": {
-    type: "dir",
-    required: true,
+    type: "directory",
     children: {
       "index.ts": {
         type: "file",
-        required: true,
-        template: "export * from './components';\n"
+        content: "export * from './components';\n"
       },
       "utils": {
-        type: "dir",
+        type: "directory",
         children: {
           "helper.ts": {
             type: "file",
-            template: () => `// Generated on ${new Date().toISOString()}\n`
+            content: `// Generated on ${new Date().toISOString()}\n`
           }
         }
       }
@@ -99,51 +92,59 @@ const result = await linter.generate("./new-project", schema, {
 });
 
 console.log("✅ Directory structure generated!");
-if (result.warnings.length > 0) {
-  console.warn("⚠️ Warnings:", result.warnings);
-}
+console.log("Generated paths:", result.paths);
 ```
 
 ## 📚 Schema Definition
 
-### Basic Schema Structure
+### Schema Types
 
-A schema is defined as a `LintSchema` object where keys represent file/directory names or patterns, and values define the node type and properties.
+Directory Lint uses two distinct schema types:
 
-```typescript
-type LintSchema = Record<string, LintNode>;
+- **`GenerateSchema`** - For creating directory structures
+- **`ValidateSchema`** - For validating existing directory structures
 
-type LintNode = FileLintNode | DirectoryLintNode;
-```
-
-### Node Types
-
-#### File Node
+### Validate Schema Structure
 
 ```typescript
-{
-  type: "file",
-  required?: boolean,           // Default: true
-  example?: string,             // Example name for pattern-based keys
-  template?: string | (() => string),  // File content template
-  validate?: (content: string) => boolean | Promise<boolean>  // Custom validation
+type ValidateSchema = Record<string, ValidateNode>;
+
+type ValidateNode = ValidateFileSchema | ValidateDirectorySchema;
+
+interface ValidateFileSchema {
+  type: "file";
+  validate?: (content: any) => boolean;
+  required?: boolean;  // Default: true
+}
+
+interface ValidateDirectorySchema {
+  type: "directory";
+  children?: ValidateSchema;
+  required?: boolean;  // Default: true
 }
 ```
 
-#### Directory Node
+### Generate Schema Structure
 
 ```typescript
-{
-  type: "dir",
-  required?: boolean,           // Default: true
-  example?: string,             // Example name for pattern-based keys
-  children?: LintSchema         // Nested schema for subdirectories
+type GenerateSchema = Record<string, GenerateNode>;
+
+type GenerateNode = GenerateFileSchema | GenerateDirectorySchema;
+
+interface GenerateFileSchema {
+  type: "file";
+  content?: any;  // File content (string, Buffer, etc.)
+}
+
+interface GenerateDirectorySchema {
+  type: "directory";
+  children?: GenerateSchema;
 }
 ```
 
 ### Pattern Matching
 
-Directory Lint supports flexible pattern matching:
+Directory Lint supports flexible pattern matching in validation schemas:
 
 #### 1. Exact Match
 ```typescript
@@ -160,8 +161,7 @@ Directory Lint supports flexible pattern matching:
 {
   "*.test.ts": {
     type: "file",
-    required: false,
-    example: "example.test.ts"
+    required: false
   }
 }
 ```
@@ -171,241 +171,205 @@ Directory Lint supports flexible pattern matching:
 {
   "/^component-.+\\.tsx$/": {
     type: "file",
-    required: false,
-    example: "component-button.tsx"
+    required: false
   }
 }
 ```
 
-## 🎯 Framework Presets
+**Note:** Regex patterns are **not supported** in `GenerateSchema` and will throw a `RegexNotSupported` error.
 
-Directory Lint includes **15+ pre-configured schemas** for popular frameworks:
+## 💡 Examples
 
-### Frontend
-- **Vite** - React, Vue, Svelte + Tailwind + Vitest
-- **Next.js** - App Router & Pages Router
-- **React** - CRA with Redux & Router
-- **Vue** - Vue 3 with Pinia & Router
-- **Angular** - Standalone & Module-based
-- **Svelte/SvelteKit** - With adapters
-- **Nuxt** - Nuxt 3 with plugins
-- **Astro** - Multi-framework support
-- **Remix** - Full-stack framework
-- **Gatsby** - Static site generator
-
-### Backend
-- **NestJS** - Microservices, GraphQL, Prisma
-- **Express** - REST APIs with databases
-
-### Desktop
-- **Electron** - Desktop applications
-
-### Monorepo
-- **Turborepo** - Modern monorepo tool
-- **Nx** - Smart monorepo
-- **Lerna** - Classic monorepo
-
-### Using Presets
+### Basic Generation
 
 ```typescript
-import { DirectoryLint } from "directory-lint";
-import { nextjs, nestjs, vite } from "directory-lint/presets";
+import { DirectoryLint, type GenerateSchema } from "directory-lint";
 
-// Next.js with App Router
-const nextSchema = nextjs({
-  appRouter: true,
-  withTypeScript: true,
-  withTailwind: true,
-  withSrcDir: true
-});
-
-// NestJS with Prisma and GraphQL
-const nestSchema = nestjs({
-  withPrisma: true,
-  withGraphQL: true,
-  withTesting: true
-});
-
-// Vite with React
-const viteSchema = vite({
-  withTypeScript: true,
-  withReact: true,
-  withVitest: true
-});
+const schema: GenerateSchema = {
+  "basic_file": {
+    type: "file",
+  },
+  "basic_folder": {
+    type: "directory",
+    children: {
+      "sub_dir_file": {
+        type: "file",
+        content: "Hello, World!"
+      }
+    }
+  }
+}
 
 const linter = new DirectoryLint();
-await linter.validate("./my-app", nextSchema);
+await linter.generate("./generated", schema, { overwrite: true });
 ```
 
-See the [Presets Documentation](./src/presets/README.md) for all available options.
-
-## 🔧 Advanced Features
-
-### File Templates
+### Basic Validation with Custom Validation
 
 ```typescript
-const schema: LintSchema = {
-  "README.md": {
-    type: "file",
-    template: "# My Project\n\nGenerated with Directory Lint"
+import { DirectoryLint, type ValidateSchema } from "directory-lint";
+
+const schema: ValidateSchema = {
+  "generated": {
+    type: "directory",
+    required: true,
+    children: {
+      "content.txt": {
+        type: "file",
+        required: true
+      },
+      "*.txt": {
+        type: "file",
+        validate: (content: string): boolean => {
+          return content.length > 1;
+        }
+      }
+    }
+  }
+}
+
+const linter = new DirectoryLint();
+const result = await linter.validate("./", schema, { 
+  ignore: ["node_modules"] 
+});
+```
+
+### Project Template Generation
+
+```typescript
+import { DirectoryLint, type GenerateSchema } from "directory-lint";
+
+const projectSchema: GenerateSchema = {
+  "src": {
+    type: "directory",
+    children: {
+      "index.ts": {
+        type: "file",
+        content: "console.log('Hello, TypeScript!');"
+      },
+      "types": {
+        type: "directory",
+        children: {
+          "index.d.ts": {
+            type: "file",
+            content: "export {};"
+          }
+        }
+      }
+    }
   },
   "package.json": {
     type: "file",
-    template: () => JSON.stringify({
+    content: JSON.stringify({
       name: "my-project",
       version: "1.0.0",
-      createdAt: new Date().toISOString()
+      main: "src/index.ts"
+    }, null, 2)
+  },
+  "tsconfig.json": {
+    type: "file",
+    content: JSON.stringify({
+      compilerOptions: {
+        target: "ES2020",
+        module: "commonjs",
+        strict: true
+      }
     }, null, 2)
   }
 };
+
+const linter = new DirectoryLint();
+await linter.generate("./my-new-project", projectSchema, {
+  recursive: true,
+  overwrite: false
+});
 ```
 
-### Custom Validation
+### CI/CD Validation
 
 ```typescript
-const schema: LintSchema = {
+import { DirectoryLint, type ValidateSchema } from "directory-lint";
+
+const ciSchema: ValidateSchema = {
+  "src": {
+    type: "directory",
+    required: true,
+    children: {
+      "index.ts": {
+        type: "file",
+        required: true
+      }
+    }
+  },
   "package.json": {
     type: "file",
     required: true,
-    validate: async (content) => {
-      const pkg = JSON.parse(content);
-      return pkg.name && pkg.version;
+    validate: (content: any) => {
+      try {
+        const pkg = JSON.parse(content);
+        return pkg.name && pkg.version;
+      } catch {
+        return false;
+      }
     }
+  },
+  "*.config.js": {
+    type: "file",
+    required: false
   }
 };
-```
-
-### Validation Options
-
-```typescript
-const result = await linter.validate("./project", schema, {
-  ignore: ["node_modules", "dist", ".git", "*.log"]
-});
-```
-
-### Generation Options
-
-```typescript
-const result = await linter.generate("./project", schema, {
-  overwrite: true,    // Overwrite existing files
-  recursive: true     // Create parent directories
-});
-```
-
-### Validation Results
-
-```typescript
-interface ValidationResult {
-  valid: boolean;
-  errors: Array<{
-    path: string;
-    message: string;
-    type: "missing" | "invalid-type" | "custom";
-  }>;
-  warnings: Array<{
-    path: string;
-    message: string;
-  }>;
-}
-```
-
-## 💡 Use Cases
-
-### 1. Project Templates
-Ensure scaffolded projects follow the correct structure:
-
-```typescript
-import { DirectoryLint } from "directory-lint";
-import { react } from "directory-lint/presets";
-
-async function createProject(name: string) {
-  const linter = new DirectoryLint();
-  const schema = react({ withTypeScript: true, withRedux: true });
-  
-  await linter.generate(`./${name}`, schema);
-  console.log(`✅ Created ${name}`);
-}
-```
-
-### 2. CI/CD Validation
-Verify repository structure in build pipelines:
-
-```typescript
-// validate-structure.ts
-import { DirectoryLint } from "directory-lint";
-import { nextjs } from "directory-lint/presets";
 
 const linter = new DirectoryLint();
-const schema = nextjs({ appRouter: true, withTypeScript: true });
 
-const result = await linter.validate(".", schema, {
-  ignore: ["node_modules", "dist", ".next"]
-});
-
-if (!result.valid) {
-  console.error("Structure validation failed!");
-  console.error(result.errors);
+try {
+  const result = await linter.validate(".", ciSchema, {
+    ignore: ["node_modules", "dist", ".git"]
+  });
+  console.log("✅ Structure validation passed!");
+} catch (error) {
+  console.error("❌ Structure validation failed:", error.message);
   process.exit(1);
 }
 ```
 
-### 3. Monorepo Validation
-Ensure consistent structure across packages:
-
-```typescript
-import { DirectoryLint, type LintSchema } from "directory-lint";
-import { monorepo, nextjs, nestjs } from "directory-lint/presets";
-
-const schema: LintSchema = {
-  ...monorepo({ withTurborepo: true, packageManager: "pnpm" }),
-  "apps": {
-    type: "dir",
-    required: true,
-    children: {
-      "web": {
-        type: "dir",
-        children: nextjs({ appRouter: true })
-      },
-      "api": {
-        type: "dir",
-        children: nestjs({ withPrisma: true })
-      }
-    }
-  }
-};
-
-const linter = new DirectoryLint();
-await linter.validate(".", schema);
-```
-
 ## 🔌 Custom Backend
 
-Create custom backends for different environments:
+Create custom backends for different storage systems:
 
 ```typescript
 import { LintBackend, LintItem } from "directory-lint";
 
-const S3Backend: LintBackend = {
+const CustomBackend: LintBackend = {
   getAllItems(path: string): LintItem[] {
-    // Your S3 implementation
-    return [];
+    // Return items in the directory
+    return [
+      { name: "file.txt", type: "file" },
+      { name: "folder", type: "directory" }
+    ];
   },
 
-  writeFile(path: string, content: string): void {
-    // Your S3 implementation
+  writeFile(path: string, content: any): void {
+    // Write file content
+    console.log(`Writing to ${path}:`, content);
+  },
+
+  readFile(path: string): any {
+    // Read file content
+    return "file content";
   },
 
   makeDirectory(path: string, recursive?: boolean): void {
-    // Your S3 implementation
+    // Create directory
+    console.log(`Creating directory ${path}, recursive: ${recursive}`);
   },
 
   exists(path: string): boolean {
-    // Your S3 implementation
-    return false;
+    // Check if path exists
+    return true;
   }
 };
 
-const linter = new DirectoryLint(S3Backend);
+const linter = new DirectoryLint(CustomBackend);
 ```
 
 ## 📖 API Reference
@@ -417,35 +381,161 @@ const linter = new DirectoryLint(S3Backend);
 constructor(backend?: LintBackend)
 ```
 
+Creates a new DirectoryLint instance with an optional custom backend. Defaults to `FileSystemBackend`.
+
 #### Methods
 
-##### `validate(path: string, schema: LintSchema, options?: ValidateOptions): Promise<ValidationResult>`
-Validates a directory structure against a schema.
+##### `generate(cwd: string, schema: GenerateSchema, options?: GenerateOptions): Promise<GenerateResult>`
 
-**Options:**
-- `ignore`: Array of patterns to ignore
-
-**Returns:** Validation result with errors and warnings
-
-##### `generate(path: string, schema: LintSchema, options?: GenerateOptions): Promise<GenerationResult>`
 Generates a directory structure based on a schema.
 
-**Options:**
-- `overwrite`: Overwrite existing files (default: false)
-- `recursive`: Create parent directories (default: false)
+**Parameters:**
+- `cwd`: Current working directory (base path)
+- `schema`: Generation schema definition
+- `options`: Optional generation options
 
-**Returns:** Generation result with warnings
+**Options:**
+- `overwrite?: boolean` - Overwrite existing files (default: false)
+- `recursive?: boolean` - Create parent directories if they don't exist (default: false)
+
+**Returns:**
+```typescript
+interface GenerateResult {
+  cwd: string;
+  paths: Record<string, {
+    type: "file" | "directory";
+    path: string;
+    children?: Record<string, ...>;
+  }>;
+}
+```
+
+**Throws:**
+- `RegexNotSupported` - If regex patterns are used in the schema
+
+##### `validate(cwd: string, schema: ValidateSchema, options?: ValidateOptions): Promise<ValidateResult>`
+
+Validates a directory structure against a schema.
+
+**Parameters:**
+- `cwd`: Current working directory (base path)
+- `schema`: Validation schema definition
+- `options`: Optional validation options
+
+**Options:**
+- `ignore: string[]` - Array of file/directory names to ignore during validation
+
+**Returns:**
+```typescript
+interface ValidateResult {
+  cwd: string;
+  paths: Record<string, {
+    type: "file" | "directory";
+    name: string;
+    path: string;
+    children?: Record<string, ...>;
+  }>;
+}
+```
+
+**Throws:**
+- `InvalidStructure` - If required items are missing or have incorrect types
+- `InvalidContent` - If file content fails custom validation
+
+### Backend Interface
+
+```typescript
+interface LintBackend {
+  getAllItems(path: string): LintItem[];
+  writeFile(path: string, content: any): void;
+  readFile(path: string): any;
+  makeDirectory(path: string, recursive?: boolean): void;
+  exists(path: string): boolean;
+}
+
+interface LintItem {
+  name: string;
+  type: "file" | "directory";
+}
+```
+
+## 🚨 Error Handling
+
+Directory Lint throws specific errors for different failure scenarios:
+
+```typescript
+import { InvalidStructure, InvalidContent, RegexNotSupported } from "directory-lint";
+
+try {
+  await linter.validate("./project", schema, { ignore: [] });
+} catch (error) {
+  if (error instanceof InvalidStructure) {
+    console.error("Structure error:", error.message);
+  } else if (error instanceof InvalidContent) {
+    console.error("Content validation failed:", error.message);
+  } else if (error instanceof RegexNotSupported) {
+    console.error("Regex not allowed in generate schema:", error.message);
+  }
+}
+```
+
+## 🔍 Pattern Matching Details
+
+### Wildcard Patterns
+
+Use `*` to match any sequence of characters:
+
+```typescript
+{
+  "*.ts": { type: "file" },        // Matches: file.ts, index.ts, etc.
+  "test-*": { type: "directory" }  // Matches: test-unit, test-e2e, etc.
+}
+```
+
+### Regex Patterns
+
+Use `/pattern/` syntax for complex matching:
+
+```typescript
+{
+  "/^[a-z]+\\.config\\.(js|ts)$/": {
+    type: "file"
+  }
+}
+// Matches: vite.config.js, jest.config.ts, etc.
+```
+
+### Exact Match
+
+Simple string keys match exactly:
+
+```typescript
+{
+  "package.json": { type: "file" },
+  "src": { type: "directory" }
+}
+```
 
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-### Adding a New Preset
+### Development Setup
 
-1. Create a new file in `src/presets/`
-2. Export a function that returns a `LintSchema`
-3. Add the export to `src/presets/index.ts`
-4. Update the presets README
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/directory-lint.git
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Run examples
+npm run example:generate
+npm run example:validate
+```
 
 ## 📝 License
 
@@ -454,7 +544,3 @@ MIT © Henry Vilani
 ## 🙏 Acknowledgments
 
 Built with ❤️ for the developer community.
-
----
-
-**Keywords:** linter,validation, filesystem, directorystructure, architecture, lint
