@@ -63,6 +63,12 @@ export class DirectoryLint {
 
                 }
 
+                result.paths[name] = {
+                    path: fullPath,
+                    type: node.type
+
+                }
+
             }
         }
 
@@ -117,6 +123,12 @@ export class DirectoryLint {
                     const content = this.backend.readFile(fullPath);
 
                     if (node.validate ? !node.validate(content) : false) throw new InvalidContent(fullPath);
+
+                    result.paths[name] = {
+                        path: fullPath,
+                        name: name,
+                        type: node.type,
+                    }
 
                 }
 
