@@ -82,8 +82,10 @@ export class DirectoryLint {
 
             const regex = this.patternToRegex(pattern);
             const matchedItems = items.filter(item => regex.test(item.name));
+
+            const isRequired = node.required ?? true;
             
-            if (matchedItems.length === 0 && node.required !== false) throw new InvalidStructure(pattern);
+            if (matchedItems.length === 0 && isRequired) throw new InvalidStructure(pattern);
 
             for (const {name, type} of matchedItems) {
 
