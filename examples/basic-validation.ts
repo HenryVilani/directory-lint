@@ -19,17 +19,12 @@ const schema: ValidateSchema = {
 
     "generated": {
         type: "directory",
-        required: true,
         children: {
             "content.txt": {
                 type: "file",
-                required: true
             },
-            "*.txt": {
+            "note.txt": {
                 type: "file",
-                validate: (content: string): boolean => {
-                    return content.length > 1;
-                }
             }
         }
     }
