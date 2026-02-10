@@ -4,8 +4,8 @@ export interface LintBackend {
 
     getAllItems(path: string): LintItem[];
 
-    writeFile(path: string, content: string): void;
-    readFile(path: string): string;
+    writeFile(path: string, content: any): void;
+    readFile(path: string): any;
 
     makeDirectory(path: string, recursive?: boolean): void;
 

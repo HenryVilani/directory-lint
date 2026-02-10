@@ -12,17 +12,55 @@ export interface ValidateOptions {
 
 }
 
-export interface ValidationResult {
+interface ValidateFileResult {
 
-    valid: boolean;
-
-    errors: Array<{ path: string; message: string; type: "missing" | "invalid-type" | "custom" }>;
-    warnings: Array<{ path: string; message: string }>;
+    type: "file";
+    name: string;
+    path: string;
 
 }
 
-export interface GenerationResult {
+interface ValidateDirectoryResult {
 
-    warnings: Array<{ path: string; message: string; type: "missing"}>;
+    type: "directory";
+    name: string;
+    path: string;
+    children?: ValidatePathResult;
+
+}
+
+type ValidateNodeResult = ValidateFileResult | ValidateDirectoryResult;
+type ValidatePathResult = Record<string, ValidateNodeResult>;
+
+export interface ValidateResult {
+
+    cwd: string;
+    paths: ValidatePathResult;
+
+}
+
+interface GenerateFileResult {
+
+    type: "file";
+    path: string;
+
+}
+
+interface GenerateDirectoryResult {
+
+    type: "directory";
+    path: string;
+    children?: GeneratePathResult;
+
+}
+
+type GenerateNodeResult = GenerateFileResult | GenerateDirectoryResult;
+type GeneratePathResult = Record<string, GenerateNodeResult>;
+
+
+export interface GenerateResult {
+
+    cwd: string;
+    paths: GeneratePathResult;
 
 }

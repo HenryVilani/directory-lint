@@ -1,6 +1,6 @@
-import { LintNode } from "./schema.types.js";
+import { ValidateNode } from "./schema.types.js";
 
 export type LintItem = {
     name: string;
-    type: LintNode["type"];
+    type: ValidateNode["type"];
 }

@@ -8,17 +8,17 @@ export const FileSystemBackend: LintBackend = {
         return fs.readdirSync(path, { withFileTypes: true }).map(item => (
             {
                 name: item.name,
-                type: item.isDirectory() ? "dir" : "file"
+                type: item.isDirectory() ? "directory" : "file"
             }
         ));
     },
 
-    writeFile(path: string, content: string): void {
-        fs.writeFileSync(path, content, { encoding: "utf-8"});
+    writeFile(path: string, content: any): void {
+        fs.writeFileSync(path, content);
     },
 
-    readFile(path: string): string {
-        return fs.readFileSync(path, { encoding: "utf-8"});
+    readFile(path: string): any {
+        return fs.readFileSync(path);
     },
 
     makeDirectory(path: string, recursive?: boolean): void {

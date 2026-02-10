@@ -1,24 +1,38 @@
 
-interface BaseLintNode {
+interface ValidateFileSchema {
 
-    required?: boolean;
-    example?: string;
-
-}
-
-interface FileLintNode extends BaseLintNode {
-    
     type: "file";
-    validate?: (content: string) => boolean | Promise<boolean>;
-    template?: string | (() => string);
+    validate?: (content: any) => boolean;
+    required?: boolean;
 
 }
 
-interface DirectoryLintNode extends BaseLintNode{
-    type: "dir";
-    children?: LintSchema;
+interface ValidateDirectorySchema {
+
+    type: "directory";
+    children?: ValidateSchema;
+    required?: boolean;
+
 }
 
-export type LintNode = FileLintNode | DirectoryLintNode;
-export type LintSchema = Record<string, LintNode>;
+export type ValidateNode = ValidateFileSchema | ValidateDirectorySchema;
+export type ValidateSchema = Record<string, ValidateNode>;
+
+interface GenerateFileSchema {
+
+    type: "file";
+    content?: any;
+
+}
+
+interface GenerateDirectorySchema {
+    
+    type: "directory";
+    children?: GenerateSchema;
+
+}
+
+export type GenerateNode = GenerateFileSchema | GenerateDirectorySchema;
+export type GenerateSchema = Record<string, GenerateNode>;
+
 
