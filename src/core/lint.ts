@@ -76,69 +76,74 @@ export class DirectoryLint {
     }
 
     async validate(cwd: string, schema: ValidateSchema, options?: ValidateOptions): Promise<ValidateResult> {
-
         const result: ValidateResult = {
             cwd: cwd,
             paths: {},
         }
 
         const items = this.backend.getAllItems(cwd);
+        // Rastreador para evitar que o mesmo arquivo seja processado por múltiplos padrões (ex: 'manifest.yaml' e '*')
+        const processedNames = new Set<string>();
 
-        for (const [pattern, node] of Object.entries(schema)) {
+        // Ordenamos as chaves para que padrões específicos (sem *) sejam processados antes dos genéricos
+        const sortedEntries = Object.entries(schema).sort(([a], [b]) => {
+            const aHasWildcard = a.includes('*');
+            const bHasWildcard = b.includes('*');
+            if (!aHasWildcard && bHasWildcard) return -1;
+            if (aHasWildcard && !bHasWildcard) return 1;
+            return 0;
+        });
 
+        for (const [pattern, node] of sortedEntries) {
             const regex = this.patternToRegex(pattern);
-            const matchedItems = items.filter(item => regex.test(item.name));
+            
+            // Filtramos apenas itens que batem com a regex E que ainda não foram "reivindicados"
+            const matchedItems = items.filter(item => 
+                regex.test(item.name) && !processedNames.has(item.name)
+            );
 
             const isRequired = node.required ?? true;
-            
             if (matchedItems.length === 0 && isRequired) throw new InvalidStructure(pattern);
 
-            for (const {name, type} of matchedItems) {
-
+            for (const { name, type } of matchedItems) {
                 if (options?.ignore.includes(name)) continue;
+
+                // Marcamos como processado para que o próximo padrão (ex: '*') ignore este item
+                processedNames.add(name);
 
                 const fullPath = join(cwd, name);
 
                 if (node.type === "directory") {
-
-                    let childrenResult: ValidateResult | undefined = undefined;
-
                     if (type !== "directory") throw new InvalidStructure(fullPath);
-                    else if (node.children) {
+                    
+                    let childrenResult: ValidateResult | undefined = undefined;
+                    if (node.children) {
                         childrenResult = await this.validate(fullPath, node.children, options);
                     }
 
                     result.paths[name] = {
                         path: fullPath,
                         name: name,
-                        type: node.type,
+                        type: "directory",
                         ...(childrenResult?.paths && { children: childrenResult.paths })
+                    };
 
-                    }
-
-                }else if (node.type === "file") {
-
+                } else if (node.type === "file") {
                     if (type !== "file") throw new InvalidStructure(fullPath);
 
                     const content = this.backend.readFile(fullPath);
-
                     if (node.validate ? !node.validate(content) : false) throw new InvalidContent(fullPath);
 
                     result.paths[name] = {
                         path: fullPath,
                         name: name,
-                        type: node.type,
-                    }
-
+                        type: "file",
+                    };
                 }
-
             }
-
-
         }
 
         return result;
-
     }
 
     private patternToRegex(pattern: string): RegExp {
