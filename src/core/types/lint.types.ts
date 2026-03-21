@@ -1,4 +1,20 @@
 
+type MapValidateSchema<T> = {
+  [K in keyof T]:
+    T[K] extends { type: "file" }
+      ? ValidateFileResult
+      : T[K] extends { type: "directory"; children?: infer C }
+        ? ValidateDirectoryResult & {
+            children: C extends object ? MapValidateSchema<C> : undefined;
+          }
+        : never;
+};
+
+type ExtractChildren<T> =
+  T extends { type: "directory"; children: infer C }
+    ? C
+    : never;
+
 export interface GenerateOptions {
 
     overwrite?: boolean;
@@ -32,10 +48,10 @@ interface ValidateDirectoryResult {
 type ValidateNodeResult = ValidateFileResult | ValidateDirectoryResult;
 type ValidatePathResult = Record<string, ValidateNodeResult>;
 
-export interface ValidateResult {
+export interface ValidateResult<TSchema> {
 
     cwd: string;
-    paths: ValidatePathResult;
+    paths: MapValidateSchema<TSchema>;
 
 }
 

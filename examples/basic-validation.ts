@@ -15,7 +15,7 @@ const generateSchema: GenerateSchema = {
     }
 }
 
-const schema: ValidateSchema = {
+const schema = {
 
     "generated": {
         type: "directory",
@@ -29,9 +29,9 @@ const schema: ValidateSchema = {
         }
     }
 
-}
+} as const satisfies ValidateSchema;
 
 const lint = new DirectoryLint();
 lint.generate("./", generateSchema);
 
-lint.validate("./", schema);
+await lint.validate("./", schema);
